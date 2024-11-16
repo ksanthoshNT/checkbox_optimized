@@ -15,13 +15,14 @@ from config import Config
 class PatternMatchResult:
     """Data class to store pattern matching results."""
     position: Tuple[int, int]
-    neighborhood: np.ndarray =None
-    confidence: float =None
+    neighborhood: np.ndarray = None
+    confidence: float = None
+
 
 @dataclass
 class PreprocessConfig:
-    erosion_kernel: Tuple[int, int] = (2,2)
-    dilation_kernel: Tuple[int, int] = (2,2)
+    erosion_kernel: Tuple[int, int] = (2, 2)
+    dilation_kernel: Tuple[int, int] = (2, 2)
     binary_threshold: int = 200
 
 
@@ -79,13 +80,13 @@ class ImagePatternMatcher:
                          [0, 1, 1],
                          [0, 1, 0]], dtype=np.uint8)
 
-    def load_image(self, image_source: Union[str, Path, np.ndarray],preprocess_config:PreprocessConfig) -> bool:
+    def load_image(self, image_source: Union[str, Path, np.ndarray], preprocess_config: PreprocessConfig) -> bool:
         try:
             self._preprocess = ImagePreprocessor(**preprocess_config.__dict__)
-            self._image,self._gray_image = self._preprocess.preprocess(image_path=image_source)
-            cv2.imwrite("binary_image.png",self._gray_image)
-            self._binary= np.where(self._gray_image==255,1,0)
-            self._inv_binary= np.where(self._binary==1,0,1)
+            self._image, self._gray_image = self._preprocess.preprocess(image_path=image_source)
+            cv2.imwrite("binary_image.png", self._gray_image)
+            self._binary = np.where(self._gray_image == 255, 1, 0)
+            self._inv_binary = np.where(self._binary == 1, 0, 1)
             self.logger.info(f"Image loaded and preprocessed. Shape: {self._image.shape}")
             return True
 
@@ -93,7 +94,7 @@ class ImagePatternMatcher:
             self.logger.error(f"Error loading image: {str(e)}")
             raise ValueError(f"Image loading failed: {str(e)}")
 
-    def _compute_cumsum_arrays(self,arr) -> Tuple[np.ndarray, np.ndarray]:
+    def _compute_cumsum_arrays(self, arr) -> Tuple[np.ndarray, np.ndarray]:
         """Compute cumulative sum arrays for the binary image."""
         return (np.cumsum(arr, axis=0),
                 np.cumsum(arr, axis=1))
@@ -166,23 +167,22 @@ class ImagePatternMatcher:
         """
         self._validate_state()
         y_cumsum, x_cumsum = self._compute_cumsum_arrays(self._inv_binary)
-        self._pad_inv_binary = np.pad(self._inv_binary, (1, ), 'constant', constant_values=(0,))
+        self._pad_inv_binary = np.pad(self._inv_binary, (1,), 'constant', constant_values=(0,))
         matches: List = []
         print(self._pad_inv_binary.shape)
         # self._pad_inv_binary = np.random.randint(10,size=(5,4))
         rows, cols = self._pad_inv_binary.shape
         p_height, p_width = self._pattern.shape
         pattern = np.array([
-            [1,1,1],
             [1, 1, 1],
-            [1,1,0]
+            [1, 1, 1],
+            [1, 1, 0]
         ])
-        matches = find_pattern_3x3_fast(self._inv_binary,pattern)
-
+        matches = find_pattern_3x3_fast(self._inv_binary, pattern)
 
         print(len(matches))
-        with open("matches.json","w") as f:
-            json.dump([(int(x[0]),int(x[1])) for x in matches], f,indent=4)
+        with open("matches.json", "w") as f:
+            json.dump([(int(x[0]), int(x[1])) for x in matches], f, indent=4)
         location_idx = 0
         if matches:
             print("\nVerifying first match:")
@@ -196,11 +196,11 @@ class ImagePatternMatcher:
         img = Image.open("/home/ntlpt59/MAIN/experiments/checkbox_optimized/data/Export-Bill_filled_sample0.jpg")
         draw = ImageDraw.Draw(img)
         Image.fromarray(self._image)
-        y,x=point
-        with open("matches.json","r") as f:
+        y, x = point
+        with open("matches.json", "r") as f:
             points = json.load(f)
-        for y,x in points:
-            draw.rectangle([(x,y),(x+20,y+20)], outline='blue', width=2)
+        for y, x in points:
+            draw.rectangle([(x, y), (x + 20, y + 20)], outline='blue', width=2)
         img.show()
 
         exit()
@@ -256,7 +256,7 @@ def main(image_path: str, threshold: int = 125, confidence: float = 0.8):
 
     try:
         # Load image and find matches
-        matcher.load_image(image_path,preprocess_config=preprocess_config)
+        matcher.load_image(image_path, preprocess_config=preprocess_config)
 
         # Set custom pattern for checkbox detection
         # This pattern represents a general checkbox shape
@@ -271,7 +271,6 @@ def main(image_path: str, threshold: int = 125, confidence: float = 0.8):
             print(f"Confidence: {match.confidence:.2f}")
             print("Pattern:")
             print(match.neighborhood)
-
 
         # Visualize results
         result_image = matcher.visualize_matches(matches)
