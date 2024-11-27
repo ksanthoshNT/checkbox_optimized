@@ -82,8 +82,8 @@ class CumulativeSumBoxDetector:
 
 if __name__ == '__main__':
     processor = ImageProcessor()
-    input_arr = processor.get_binary_image(image_path="/home/ntlpt59/MAIN/experiments/checkbox_optimized/data/Export-Bill_filled_sample0.jpg")
-    box_processor = CumulativeSumBoxDetector(input_arr)
+    binary_arr = processor.get_binary_image(image_path="/home/ntlpt59/MAIN/experiments/checkbox_optimized/data/Export-Bill_filled_sample0.jpg")
+    box_processor = CumulativeSumBoxDetector(binary_arr)
     print(box_processor.iloc(box_processor.image_arr_x_cumsum,
                                  100,100))
-    processor.print_np(input_arr[:10,:10])
+    processor.print_np(binary_arr[:10,:10])

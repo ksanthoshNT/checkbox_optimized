@@ -1,7 +1,7 @@
-from PIL import Image, ImageDraw
-import numpy as np
-import cv2
 from typing import List, Tuple
+
+import cv2
+import numpy as np
 
 from src.checkbox_fixings.main import ImageProcessor
 
@@ -12,6 +12,15 @@ def detect_horizontal_lines(binary_array: np.ndarray,
                             min_points_in_line: int = 40) -> List[Tuple[Tuple[int, int], Tuple[int, int]]]:
     """
     Detect horizontal lines from binary array where 1 represents black pixels.
+
+    Args:
+        binary_array: numpy array where 1 is black (line) and 0 is white (background)
+        min_line_length: minimum required length for a line
+        max_line_gap: maximum gap between points to be considered same line
+        min_points_in_line: minimum number of points required to consider as line
+
+    Returns:
+        List of lines, where each line is represented as ((x1,y1), (x2,y2))
     """
     height, width = binary_array.shape
     horizontal_lines = []
@@ -48,57 +57,46 @@ def detect_horizontal_lines(binary_array: np.ndarray,
     return horizontal_lines
 
 
-def draw_lines_on_image(image_path: str,
+# Function to draw lines on original image
+def draw_detected_lines(image: np.ndarray,
                         lines: List[Tuple[Tuple[int, int], Tuple[int, int]]],
-                        output_path: str = 'draw_output.png',
-                        line_color: str = 'red',
-                        line_width: int = 3):
+                        color: Tuple[int, int, int] = (0, 0, 255),
+                        thickness: int = 2) -> np.ndarray:
     """
-    Draw detected lines on the image using PIL
+    Draw detected lines on the image
 
     Args:
-        image_path: Path to original image
+        image: Original image
         lines: List of lines in format [((x1,y1), (x2,y2)), ...]
-        output_path: Path to save the output image
-        line_color: Color of the lines to draw
-        line_width: Width of the lines
+        color: BGR color tuple
+        thickness: Line thickness
+
+    Returns:
+        Image with drawn lines
     """
-    # Read original image
-    img = cv2.imread(image_path)
-    if img is None:
-        raise ValueError("Could not load image from provided path")
-
-    # Convert to PIL Image
-    pil_image = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-    draw = ImageDraw.Draw(pil_image)
-
-    # Draw each line
+    result = image.copy()
     for (x1, y1), (x2, y2) in lines:
-        draw.line([(x1, y1), (x2, y2)], fill=line_color, width=line_width)
-
-    # Save the result
-    pil_image.save(output_path)
-    return pil_image
+        cv2.line(result, (x1, y1), (x2, y2), color, thickness)
+    return result
 
 
-# Usage example
+# Usage example to add to your main code:
 if __name__ == '__main__':
     processor = ImageProcessor()
-    image_path = "/home/ntlpt59/MAIN/experiments/checkbox_optimized/data/Export-Bill_filled_sample0.jpg"
-    binary_arr = processor.get_binary_image(image_path=image_path)
+    binary_arr = processor.get_binary_image(
+        image_path="/home/ntlpt59/MAIN/experiments/checkbox_optimized/data/Export-Bill_filled_sample0.jpg")
 
     # Detect horizontal lines
     horizontal_lines = detect_horizontal_lines(binary_arr,
                                                min_line_length=50,
-                                               max_line_gap=0,
+                                               max_line_gap=2,
                                                min_points_in_line=40)
 
-    # Draw lines using PIL
-    result_image = draw_lines_on_image(image_path,
-                                       horizontal_lines,
-                                       output_path='draw_output.png',
-                                       line_color='blue',
-                                       line_width=1)
+    # Draw lines on original image
+    result_image = draw_detected_lines(processor._image, horizontal_lines)
+
+    # Save result
+    cv2.imwrite('horizontal_lines_output.jpg', result_image)
 
     # Print line coordinates
     for i, ((x1, y1), (x2, y2)) in enumerate(horizontal_lines):
