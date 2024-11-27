@@ -71,6 +71,11 @@ def find_pattern_3x3_fast(arr, pattern=None):
     return list(zip(match_coords[0], match_coords[1]))
 
 
+class ImageUtils:
+    @classmethod
+    def get_iloc(cls,arr,x1,y1):
+        return arr[y1][x1]
+
 class ImagePatternMatcher:
     def __init__(self, logger: Optional[logging.Logger] = None):
         self.logger = logger or logging.getLogger(__name__)
@@ -100,12 +105,11 @@ class ImagePatternMatcher:
 
 
     def is_box(self,x1:int,y1:int,x2:int,y2:int):
-        return (self.get_iloc(self.image_arr_x_cumsum,x2,y1)-(self.get_iloc(self.image_arr_x_cumsum,x1-1,y1) if x1-1>=0 else 0) == self.get_iloc(self.image_arr_x_cumsum,x2,y2)-(self.get_iloc(self.image_arr_x_cumsum,x1-1,y2) if x1-1>=0 else 0)) and (
-            self.get_iloc(self.image_arr_y_cumsum,x1,y2)-(self.get_iloc(self.image_arr_y_cumsum,x2,y1-1) if y1-1>=0 else 0) == self.get_iloc(self.image_arr_y_cumsum, x2, y2) -(self.get_iloc(self.image_arr_y_cumsum, x2, y1-1) if y1-1>=0 else 0)
+        return (ImageUtils.get_iloc(self.image_arr_x_cumsum,x2,y1)-(ImageUtils.get_iloc(self.image_arr_x_cumsum,x1-1,y1) if x1-1>=0 else 0) == ImageUtils.get_iloc(self.image_arr_x_cumsum,x2,y2)-(ImageUtils.get_iloc(self.image_arr_x_cumsum,x1-1,y2) if x1-1>=0 else 0)) and (
+            ImageUtils.get_iloc(self.image_arr_y_cumsum,x1,y2)-(ImageUtils.get_iloc(self.image_arr_y_cumsum,x2,y1-1) if y1-1>=0 else 0) == ImageUtils.get_iloc(self.image_arr_y_cumsum, x2, y2) -(ImageUtils.get_iloc(self.image_arr_y_cumsum, x2, y1-1) if y1-1>=0 else 0)
         )
 
-    def get_iloc(self,arr,x1,y1):
-        return arr[y1][x1]
+
 
     @staticmethod
     def print_np(mat):
@@ -162,26 +166,37 @@ def main(image_path: str, threshold: int = 125, confidence: float = 0.8):
 
     matcher.load_image(image_path, preprocess_config=preprocess_config)
 
-    image_arr = matcher._inv_binary.copy()
+    image_arr = matcher._gray_image.copy()
+
+    image_arr = np.where(image_arr==255,0,1)
+
+    # image_arr=np.where(image_arr==1,0,255)
+    # cv2.imwrite('dummy.png',image_arr)
     logger.debug(f"Image shape : {image_arr.shape}")
 
     matcher.compute_cumsum_arrays(image_arr.copy())
 
-    # updated_image_indices = get_merged_indices_from_image(image_arr=image_arr)
-    valid_dark_point_x_coords,valid_dark_point_y_coords = get_rotate_and_imposed_indices(arr=image_arr)
-    #shape of updated_image_indices: (32494,2)
+    r,c = np.where(image_arr==1)
 
-    # boxes = []
-    # vals = np.sort(updated_image_indices).tolist()
-    # for idx,x in enumerate(tqdm(vals,desc="X..")):
-    #     for y in vals[idx:]:
-    #         if matcher.is_box(x[0],x[1],y[0],y[1]):
-    #             boxes.append([x[0],x[1],y[0],y[1]])
-    #
-    # print(len(boxes))
+
+    points = np.concatenate((r.reshape(-1,1),c.reshape(-1,1)),axis=-1)
+
+    c=0
+    for p in points:
+        if image_arr[p[0],p[1]]:
+            c+=1
+    print(c)
+
 
     end_time = time.perf_counter()
+
     print(f"Duration: {end_time - start_time} seconds")
+    exit()
+
+
+
+
+
 
 
 
